@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Random Platformer</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #101522;
+        color: white;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+    }
+
+    #gameContainer {
+        text-align: center;
+    }
+
+    canvas {
+        display: block;
+        background: linear-gradient(#5db7ff, #d9f3ff);
+        border: 3px solid #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        max-width: 95vw;
+        max-height: 80vh;
+    }
+
+    #info {
+        margin-top: 10px;
+        font-size: 16px;
+        color: #ddd;
+    }
+
+    #message {
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.75);
+        padding: 12px 22px;
+        border-radius: 8px;
+        font-size: 20px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="gameContainer">
+    <canvas id="game" width="1000" height="600"></canvas>
+
+    <div id="info">
+        ← → Move &nbsp; | &nbsp; Space Jump
+    </div>
+</div>
+
+<div id="message"></div>
+
+<script>
+"use strict";
+
+// ============================================================
+// CANVAS
+// ============================================================
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+
+
+// ============================================================
+// GAME SETTINGS
+// ============================================================
+
+const GRAVITY = 0.55;
+const MOVE_SPEED = 5;
+const JUMP_POWER = 12;
+
+const PLAYER_WIDTH = 30;
+const PLAYER_HEIGHT = 42;
+
+const PLATFORM_HEIGHT = 18;
+
+const PLATFORM_COUNT = 22;
+
+const MAX_PLATFORM_GAP = 135;
+
+const MIN_PLATFORM_WIDTH = 100;
+const MAX_PLATFORM_WIDTH = 180;
+
+
+// ============================================================
+// ENEMY SETTINGS
+// ============================================================
+
+// Slugs are approximately 1/5 the player's height.
+
+const SLUG_WIDTH = 25;
+const SLUG_HEIGHT = 8;
+
+const SLUG_SPEED = 1.2;
+
+
+// ============================================================
+// INPUT
+// ============================================================
+
+const keys = {
+    left: false,
+    right: false,
+    jump: false
+};
+
+let jumpPressed = false;
+
+
+document.addEventListener("keydown", function(e) {
+
+    if (
+        e.code === "ArrowLeft" ||
+        e.code === "ArrowRight" ||
+        e.code === "Space"
+    ) {
+        e.preventDefault();
+    }
+
+    if (e.code === "ArrowLeft") {
+        keys.left = true;
+    }
+
+    if (e.code === "ArrowRight") {
+        keys.right = true;
+    }
+
+    if (e.code === "Space") {
+
+        if (!keys.jump) {
+            jumpPressed = true;
+        }
+
+        keys.jump = true;
+    }
+});
+
+
+document.addEventListener("keyup", function(e) {
+
+    if (e.code === "ArrowLeft") {
+        keys.left = false;
+    }
+
+    if (e.code === "ArrowRight") {
+        keys.right = false;
+    }
+
+    if (e.code === "Space") {
+        keys.jump = false;
+    }
+});
+
+
+// ============================================================
+// PLAYER
+// ============================================================
+
+const player = {
+    x: 0,
+    y: 0,
+
+    width: PLAYER_WIDTH,
+    height: PLAYER_HEIGHT,
+
+    vx: 0,
+    vy: 0,
+
+    grounded: false
+};
+
+
+// ============================================================
+// PLATFORMS
+// ============================================================
+
+let platforms = [];
+
+
+// ============================================================
+// ENEMIES
+// ============================================================
+
+let slugs = [];
+
+
+// ============================================================
+// GOAL
+// ============================================================
+
+let goal = {
+    x: 0,
+    y: 0,
+    width: 35,
+    height: 50
+};
+
+
+// ============================================================
+// CAMERA
+// ============================================================
+
+const camera = {
+    x: 0,
+    y: 0
+};
+
+
+// ============================================================
+// RANDOM HELPERS
+// ============================================================
+
+function random(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+function randomInt(min, max) {
+    return Math.floor(random(min, max + 1));
+}
+
+
+// ============================================================
+// LEVEL GENERATION
+// ============================================================
+
+function generateLevel() {
+
+    platforms = [];
+    slugs = [];
+
+
+    // --------------------------------------------------------
+    // Starting platform
+    // --------------------------------------------------------
+
+    const startPlatform = {
+        x: 40,
+        y: HEIGHT - 80,
+        width: 180,
+        height: PLATFORM_HEIGHT,
+        guaranteed: true
+    };
+
+    platforms.push(startPlatform);
+
+
+    // --------------------------------------------------------
+    // Guaranteed route
+    // --------------------------------------------------------
+
+    let currentX = startPlatform.x;
+    let currentY = startPlatform.y;
+
+    const route = [];
+
+    const routeCount = 16;
+
+    for (let i = 0; i < routeCount; i++) {
+
+        const horizontalMove =
+            randomInt(80, MAX_PLATFORM_GAP);
+
+        currentX += horizontalMove;
+
+
+        const verticalMove =
+            randomInt(-80, 65);
+
+        currentY += verticalMove;
+
+
+        currentY = Math.max(
+            100,
+            Math.min(HEIGHT - 80, currentY)
+        );
+
+
+        const width = randomInt(
+            MIN_PLATFORM_WIDTH,
+            MAX_PLATFORM_WIDTH
+        );
+
+
+        const platform = {
+            x: currentX,
+            y: currentY,
+            width: width,
+            height: PLATFORM_HEIGHT,
+            guaranteed: true
+        };
+
+        platforms.push(platform);
+
+        route.push(platform);
+    }
+
+
+    // --------------------------------------------------------
+    // Goal
+    // --------------------------------------------------------
+
+    const lastPlatform =
+        route[route.length - 1];
+
+    goal.x =
+        lastPlatform.x +
+        lastPlatform.width -
+        50;
+
+    goal.y =
+        lastPlatform.y -
+        goal.height;
+
+
+    // --------------------------------------------------------
+    // Extra random platforms
+    // --------------------------------------------------------
+
+    for (let i = 0; i < PLATFORM_COUNT; i++) {
+
+        const x = random(
+            0,
+            currentX + 200
+        );
+
+        const y = random(
+            80,
+            HEIGHT - 50
+        );
+
+        const width = randomInt(
+            70,
+            150
+        );
+
+
+        const platform = {
+            x: x,
+            y: y,
+            width: width,
+            height: PLATFORM_HEIGHT,
+            guaranteed: false
+        };
+
+
+        let overlapsRoute = false;
+
+
+        for (const p of platforms) {
+
+            if (
+                x < p.x + p.width &&
+                x + width > p.x &&
+                Math.abs(y - p.y) < 35
+            ) {
+                overlapsRoute = true;
+                break;
+            }
+        }
+
+
+        if (!overlapsRoute) {
+            platforms.push(platform);
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // Create slugs
+    // --------------------------------------------------------
+
+    createSlugs();
+
+
+    // --------------------------------------------------------
+    // Starting position
+    // --------------------------------------------------------
+
+    player.x =
+        startPlatform.x +
+        startPlatform.width / 2 -
+        player.width / 2;
+
+    player.y =
+        startPlatform.y -
+        player.height;
+
+    player.vx = 0;
+    player.vy = 0;
+    player.grounded = true;
+
+
+    camera.x = 0;
+    camera.y = 0;
+}
+
+
+// ============================================================
+// CREATE SLUGS
+// ============================================================
+//
+// Each platform has a chance of getting a slug.
+//
+// Slugs are placed on top of their platform and remember
+// which platform they belong to. This means they stay on
+// their platform instead of falling off it.
+//
+
+function createSlugs() {
+
+    slugs = [];
+
+    for (let i = 0; i < platforms.length; i++) {
+
+        const platform = platforms[i];
+
+        // Don't put a slug on the starting platform.
+        if (i === 0) {
+            continue;
+        }
+
+
+        // About 45% of platforms get a slug.
+
+        if (Math.random() > 0.45) {
+            continue;
+        }
+
+
+        // Don't put a slug directly beside the goal.
+
+        if (
+            Math.abs(
+                platform.x - goal.x
+            ) < 50 &&
+            Math.abs(
+                platform.y - goal.y
+            ) < 50
+        ) {
+            continue;
+        }
+
+
+        const slug = {
+
+            platform: platform,
+
+            width: SLUG_WIDTH,
+            height: SLUG_HEIGHT,
+
+            x: random(
+                platform.x + 10,
+                platform.x +
+                platform.width -
+                SLUG_WIDTH -
+                10
+            ),
+
+            y:
+                platform.y -
+                SLUG_HEIGHT,
+
+            vx:
+                Math.random() < 0.5
+                    ? -SLUG_SPEED
+                    : SLUG_SPEED
+        };
+
+
+        slugs.push(slug);
+    }
+}
+
+
+// ============================================================
+// UPDATE SLUGS
+// ============================================================
+
+function updateSlugs() {
+
+    for (const slug of slugs) {
+
+        slug.x += slug.vx;
+
+
+        const platform = slug.platform;
+
+
+        // Keep the slug on its platform.
+
+        const leftEdge =
+            platform.x;
+
+        const rightEdge =
+            platform.x +
+            platform.width -
+            slug.width;
+
+
+        if (slug.x <= leftEdge) {
+
+            slug.x = leftEdge;
+
+            slug.vx =
+                Math.abs(slug.vx);
+        }
+
+
+        if (slug.x >= rightEdge) {
+
+            slug.x = rightEdge;
+
+            slug.vx =
+                -Math.abs(slug.vx);
+        }
+
+
+        // Occasionally change direction randomly.
+
+        if (Math.random() < 0.004) {
+
+            slug.vx *= -1;
+        }
+    }
+}
+
+
+// ============================================================
+// PLAYER COLLISION
+// ============================================================
+
+function isColliding(a, b) {
+
+    return (
+        a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y
+    );
+}
+
+
+// ============================================================
+// UPDATE PLAYER
+// ============================================================
+
+function updatePlayer() {
+
+    // --------------------------------------------------------
+    // Horizontal movement
+    // --------------------------------------------------------
+
+    if (keys.left) {
+
+        player.vx = -MOVE_SPEED;
+
+    }
+    else if (keys.right) {
+
+        player.vx = MOVE_SPEED;
+
+    }
+    else {
+
+        player.vx *= 0.8;
+
+        if (Math.abs(player.vx) < 0.05) {
+            player.vx = 0;
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // Jump
+    // --------------------------------------------------------
+
+    if (
+        jumpPressed &&
+        player.grounded
+    ) {
+
+        player.vy =
+            -JUMP_POWER;
+
+        player.grounded = false;
+    }
+
+    jumpPressed = false;
+
+
+    // --------------------------------------------------------
+    // Gravity
+    // --------------------------------------------------------
+
+    player.vy += GRAVITY;
+
+
+    // --------------------------------------------------------
+    // Horizontal movement
+    // --------------------------------------------------------
+
+    player.x += player.vx;
+
+
+    // --------------------------------------------------------
+    // Vertical movement
+    // --------------------------------------------------------
+
+    const oldY = player.y;
+
+    player.y += player.vy;
+
+    player.grounded = false;
+
+
+    // --------------------------------------------------------
+    // Platform collisions
+    // --------------------------------------------------------
+
+    for (const platform of platforms) {
+
+        if (player.vy >= 0) {
+
+            const playerBottom =
+                player.y +
+                player.height;
+
+            const oldBottom =
+                oldY +
+                player.height;
+
+            const platformTop =
+                platform.y;
+
+
+            if (
+                oldBottom <= platformTop &&
+                playerBottom >= platformTop &&
+                player.x + player.width >
+                    platform.x &&
+                player.x <
+                    platform.x +
+                    platform.width
+            ) {
+
+                player.y =
+                    platformTop -
+                    player.height;
+
+                player.vy = 0;
+
+                player.grounded = true;
+            }
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // World boundary
+    // --------------------------------------------------------
+
+    if (player.x < 0) {
+
+        player.x = 0;
+        player.vx = 0;
+    }
+
+
+    // --------------------------------------------------------
+    // Fall off level
+    // --------------------------------------------------------
+
+    if (player.y > HEIGHT + 200) {
+
+        resetPlayer();
+    }
+}
+
+
+// ============================================================
+// CHECK ENEMY COLLISIONS
+// ============================================================
+
+function checkSlugCollisions() {
+
+    for (const slug of slugs) {
+
+        if (isColliding(player, slug)) {
+
+            resetPlayer();
+
+            showMessage("Ouch! Try again!");
+
+            return;
+        }
+    }
+}
+
+
+// ============================================================
+// RESET PLAYER — SAME LEVEL
+// ============================================================
+//
+// IMPORTANT:
+//
+// This function does NOT call generateLevel().
+//
+// Therefore all platforms and all slugs stay exactly where
+// they were. The player simply returns to the beginning.
+//
+
+function resetPlayer() {
+
+    const start =
+        platforms[0];
+
+
+    player.x =
+        start.x +
+        start.width / 2 -
+        player.width / 2;
+
+    player.y =
+        start.y -
+        player.height;
+
+
+    player.vx = 0;
+    player.vy = 0;
+
+    player.grounded = true;
+
+
+    camera.x = 0;
+}
+
+
+// ============================================================
+// CHECK GOAL
+// ============================================================
+
+function checkGoal() {
+
+    const goalHitbox = {
+
+        x: goal.x,
+        y: goal.y,
+
+        width: goal.width,
+        height: goal.height
+    };
+
+
+    if (isColliding(player, goalHitbox)) {
+
+        showMessage(
+            "Level complete! New level!"
+        );
+
+
+        setTimeout(function() {
+
+            generateLevel();
+
+        }, 600);
+    }
+}
+
+
+// ============================================================
+// CAMERA
+// ============================================================
+
+function updateCamera() {
+
+    const targetX =
+        player.x -
+        WIDTH * 0.35;
+
+
+    camera.x +=
+        (targetX - camera.x) *
+        0.1;
+
+
+    if (camera.x < 0) {
+        camera.x = 0;
+    }
+
+
+    const furthestPlatform =
+        platforms.reduce(
+            (furthest, p) =>
+                Math.max(
+                    furthest,
+                    p.x + p.width
+                ),
+            WIDTH
+        );
+
+
+    const maxCamera =
+        Math.max(
+            0,
+            furthestPlatform - WIDTH
+        );
+
+
+    if (camera.x > maxCamera) {
+        camera.x = maxCamera;
+    }
+}
+
+
+// ============================================================
+// DRAW BACKGROUND
+// ============================================================
+
+function drawBackground() {
+
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            HEIGHT
+        );
+
+
+    gradient.addColorStop(
+        0,
+        "#4ca7ff"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#d8f5ff"
+    );
+
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+
+    // Clouds
+
+    ctx.fillStyle =
+        "rgba(255,255,255,0.65)";
+
+
+    for (let i = 0; i < 8; i++) {
+
+        const x =
+            ((i * 230) -
+            camera.x * 0.2) %
+            (WIDTH + 250);
+
+        const y =
+            70 +
+            (i % 3) * 70;
+
+
+        drawCloud(x, y);
+    }
+
+
+    // Distant hills
+
+    ctx.fillStyle =
+        "rgba(70,150,100,0.35)";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        HEIGHT
+    );
+
+
+    for (
+        let x = 0;
+        x <= WIDTH;
+        x += 40
+    ) {
+
+        const y =
+            HEIGHT -
+            100 -
+            Math.sin(
+                (x +
+                camera.x * 0.25) *
+                0.01
+            ) * 40;
+
+
+        ctx.lineTo(
+            x,
+            y
+        );
+    }
+
+
+    ctx.lineTo(
+        WIDTH,
+        HEIGHT
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+}
+
+
+function drawCloud(x, y) {
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        20,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x + 25,
+        y - 10,
+        28,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.arc(
+        x + 55,
+        y,
+        22,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+}
+
+
+// ============================================================
+// DRAW PLATFORMS
+// ============================================================
+
+function drawPlatforms() {
+
+    for (const platform of platforms) {
+
+        const x =
+            platform.x -
+            camera.x;
+
+        const y =
+            platform.y;
+
+
+        if (
+            x + platform.width < 0 ||
+            x > WIDTH
+        ) {
+            continue;
+        }
+
+
+        // Grass
+
+        ctx.fillStyle =
+            "#55c34a";
+
+
+        ctx.fillRect(
+            x,
+            y,
+            platform.width,
+            6
+        );
+
+
+        // Dirt
+
+        ctx.fillStyle =
+            "#80512f";
+
+
+        ctx.fillRect(
+            x,
+            y + 6,
+            platform.width,
+            platform.height - 6
+        );
+
+
+        // Dirt details
+
+        ctx.fillStyle =
+            "#633d25";
+
+
+        for (
+            let dotX = x + 12;
+            dotX <
+                x + platform.width - 5;
+            dotX += 25
+        ) {
+
+            ctx.fillRect(
+                dotX,
+                y + 11,
+                5,
+                3
+            );
+        }
+    }
+}
+
+
+// ============================================================
+// DRAW SLUGS
+// ============================================================
+
+function drawSlugs() {
+
+    for (const slug of slugs) {
+
+        const x =
+            slug.x -
+            camera.x;
+
+        const y =
+            slug.y;
+
+
+        if (
+            x + slug.width < 0 ||
+            x > WIDTH
+        ) {
+            continue;
+        }
+
+
+        // ----------------------------------------------------
+        // Slug body
+        // ----------------------------------------------------
+
+        ctx.fillStyle =
+            "#d71920";
+
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            x + slug.width / 2,
+            y + slug.height / 2,
+            slug.width / 2,
+            slug.height / 2,
+            0,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+
+        // ----------------------------------------------------
+        // Slug highlight
+        // ----------------------------------------------------
+
+        ctx.fillStyle =
+            "#ff4545";
+
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            x + 8,
+            y + 3,
+            5,
+            2,
+            0,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+
+        // ----------------------------------------------------
+        // Eyes
+        // ----------------------------------------------------
+
+        ctx.fillStyle =
+            "#ffffff";
+
+
+        ctx.fillRect(
+            x + 17,
+            y + 1,
+            3,
+            3
+        );
+
+
+        ctx.fillRect(
+            x + 22,
+            y + 1,
+            3,
+            3
+        );
+
+
+        ctx.fillStyle =
+            "#111";
+
+
+        ctx.fillRect(
+            x + 18,
+            y + 2,
+            2,
+            2
+        );
+
+
+        ctx.fillRect(
+            x + 23,
+            y + 2,
+            2,
+            2
+        );
+    }
+}
+
+
+// ============================================================
+// DRAW GOAL
+// ============================================================
+
+function drawGoal() {
+
+    const x =
+        goal.x -
+        camera.x;
+
+    const y =
+        goal.y;
+
+
+    // Pole
+
+    ctx.fillStyle =
+        "#555";
+
+
+    ctx.fillRect(
+        x + 14,
+        y,
+        5,
+        goal.height
+    );
+
+
+    // Flag
+
+    ctx.fillStyle =
+        "#ff3d67";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x + 19,
+        y + 3
+    );
+
+    ctx.lineTo(
+        x + 35,
+        y + 12
+    );
+
+    ctx.lineTo(
+        x + 19,
+        y + 21
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+}
+
+
+// ============================================================
+// DRAW PLAYER
+// ============================================================
+
+function drawPlayer() {
+
+    const x =
+        player.x -
+        camera.x;
+
+    const y =
+        player.y;
+
+
+    // Body
+
+    ctx.fillStyle =
+        "#e53935";
+
+
+    ctx.fillRect(
+        x,
+        y,
+        player.width,
+        player.height
+    );
+
+
+    // Shirt
+
+    ctx.fillStyle =
+        "#1976d2";
+
+
+    ctx.fillRect(
+        x,
+        y + 18,
+        player.width,
+        player.height - 18
+    );
+
+
+    // Face
+
+    ctx.fillStyle =
+        "#ffd1a9";
+
+
+    ctx.fillRect(
+        x + 5,
+        y + 4,
+        20,
+        17
+    );
+
+
+    // Hair
+
+    ctx.fillStyle =
+        "#38251a";
+
+
+    ctx.fillRect(
+        x + 4,
+        y + 2,
+        22,
+        6
+    );
+
+
+    // Eyes
+
+    ctx.fillStyle =
+        "#111";
+
+
+    ctx.fillRect(
+        x + 9,
+        y + 10,
+        3,
+        3
+    );
+
+
+    ctx.fillRect(
+        x + 19,
+        y + 10,
+        3,
+        3
+    );
+
+
+    // Legs
+
+    ctx.fillStyle =
+        "#263238";
+
+
+    ctx.fillRect(
+        x + 3,
+        y + 34,
+        9,
+        8
+    );
+
+
+    ctx.fillRect(
+        x + 18,
+        y + 34,
+        9,
+        8
+    );
+}
+
+
+// ============================================================
+// DRAW HUD
+// ============================================================
+
+function drawHUD() {
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.45)";
+
+
+    ctx.fillRect(
+        15,
+        15,
+        300,
+        50
+    );
+
+
+    ctx.fillStyle =
+        "#fff";
+
+
+    ctx.font =
+        "16px Arial";
+
+
+    ctx.fillText(
+        "← → Move   SPACE Jump",
+        30,
+        36
+    );
+
+
+    ctx.font =
+        "13px Arial";
+
+
+    ctx.fillStyle =
+        "#ddd";
+
+
+    ctx.fillText(
+        "Reach the red flag — avoid slugs!",
+        30,
+        55
+    );
+}
+
+
+// ============================================================
+// MESSAGE
+// ============================================================
+
+const message =
+    document.getElementById("message");
+
+let messageTimeout = null;
+
+
+function showMessage(text) {
+
+    message.textContent =
+        text;
+
+
+    message.style.opacity =
+        "1";
+
+
+    clearTimeout(
+        messageTimeout
+    );
+
+
+    messageTimeout =
+        setTimeout(function() {
+
+            message.style.opacity =
+                "0";
+
+        }, 900);
+}
+
+
+// ============================================================
+// DRAW EVERYTHING
+// ============================================================
+
+function draw() {
+
+    ctx.clearRect(
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+
+    drawBackground();
+
+    drawPlatforms();
+
+    drawSlugs();
+
+    drawGoal();
+
+    drawPlayer();
+
+    drawHUD();
+}
+
+
+// ============================================================
+// MAIN GAME LOOP
+// ============================================================
+
+function gameLoop() {
+
+    updatePlayer();
+
+    updateSlugs();
+
+    checkSlugCollisions();
+
+    updateCamera();
+
+    checkGoal();
+
+    draw();
+
+    requestAnimationFrame(
+        gameLoop
+    );
+}
+
+
+// ============================================================
+// START GAME
+// ============================================================
+
+generateLevel();
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
