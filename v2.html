@@ -10,15 +10,8 @@
         box-sizing: border-box;
     }
 
-    html {
-        width: 100%;
-        min-height: 100%;
-        overscroll-behavior: none;
-    }
-
     body {
         margin: 0;
-        padding: 12px;
         background: #101522;
         color: white;
         font-family: Arial, sans-serif;
@@ -28,49 +21,45 @@
         min-height: 100vh;
         min-height: 100dvh;
         overflow: hidden;
-        overscroll-behavior: none;
-        touch-action: manipulation;
-        -webkit-user-select: none;
-        user-select: none;
     }
 
     #gameContainer {
         width: 100%;
+        max-width: 1000px;
+        text-align: center;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
-        text-align: center;
     }
 
     canvas {
         display: block;
-        width: min(95vw, calc((100dvh - 100px) * 1.666667));
-        height: auto;
-        aspect-ratio: 5 / 3;
         background: linear-gradient(#5db7ff, #d9f3ff);
         border: 3px solid #ffffff;
         border-radius: 8px;
         box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        max-width: 100%;
-        max-height: calc(100dvh - 100px);
+        width: min(95vw, 1000px, calc(133.333dvh));
+        height: auto;
+        max-width: 95vw;
     }
 
     #info {
-        margin-top: 0;
+        margin-top: 10px;
         font-size: 16px;
-        line-height: 1.35;
         color: #ddd;
     }
 
+    /* Mobile touch controls */
     #mobileControls {
         display: none;
         width: min(100%, 440px);
-        justify-content: space-between;
         align-items: center;
-        gap: 14px;
-        padding: 0 4px;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 10px;
         touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .controlGroup {
@@ -81,60 +70,44 @@
 
     .controlButton {
         display: flex;
-        justify-content: center;
         align-items: center;
-        width: 60px;
-        height: 54px;
+        justify-content: center;
+        width: 58px;
+        height: 52px;
         min-width: 44px;
         min-height: 44px;
-        border: 2px solid rgba(255,255,255,0.85);
-        border-radius: 12px;
-        background: rgba(255,255,255,0.16);
-        color: white;
-        font-size: 25px;
+        padding: 0;
+        border: 1px solid rgba(255,255,255,0.35);
+        border-radius: 11px;
+        background: #26334b;
+        color: #fff;
+        box-shadow: 0 4px 0 #111827;
+        font-family: Arial, sans-serif;
+        font-size: 23px;
         font-weight: bold;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-        touch-action: none;
+        line-height: 1;
+        cursor: pointer;
         -webkit-tap-highlight-color: transparent;
+        touch-action: none;
         user-select: none;
+        -webkit-user-select: none;
     }
 
-    .controlButton:active,
     .controlButton.pressed {
-        background: rgba(255,255,255,0.36);
-        transform: translateY(1px);
+        background: #405779;
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 #111827;
     }
 
     #jumpButton {
-        width: 84px;
+        width: 82px;
         font-size: 14px;
-        letter-spacing: 0.4px;
-    }
-
-    @media (pointer: coarse), (max-width: 600px) {
-        body {
-            padding: 8px;
-            padding-top: max(8px, env(safe-area-inset-top));
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
-        }
-
-        #mobileControls {
-            display: flex;
-        }
-
-        canvas {
-            width: min(96vw, calc((100dvh - 175px) * 1.666667));
-            max-height: calc(100dvh - 175px);
-        }
-
-        #info {
-            font-size: 13px;
-        }
+        letter-spacing: 0.3px;
     }
 
     #message {
         position: fixed;
-        top: 30px;
+        top: max(12px, env(safe-area-inset-top));
         left: 50%;
         transform: translateX(-50%);
         background: rgba(0,0,0,0.75);
@@ -144,41 +117,66 @@
         opacity: 0;
         transition: opacity 0.2s;
         pointer-events: none;
+        max-width: calc(100vw - 24px);
+        text-align: center;
     }
 
-    /* Landscape phones: keep the game and controls inside the screen. */
-    @media (orientation: landscape) and (max-height: 500px) {
+    /* Show touch controls on phones and other touch devices */
+    @media (hover: none) and (pointer: coarse), (max-width: 600px) {
         body {
-            padding: 4px 10px;
-            padding-bottom: max(4px, env(safe-area-inset-bottom));
-            min-height: 100dvh;
-            overflow: hidden;
-        }
-
-        #gameContainer {
-            width: 100%;
-            gap: 5px;
-        }
-
-        canvas {
-            width: min(95vw, calc((100dvh - 100px) * 1.666667));
-            max-width: 100%;
-            max-height: calc(100dvh - 100px);
-        }
-
-        #info {
-            font-size: 11px;
-            line-height: 14px;
-            margin: 0;
+            padding: max(8px, env(safe-area-inset-top))
+                     max(8px, env(safe-area-inset-right))
+                     max(8px, env(safe-area-inset-bottom))
+                     max(8px, env(safe-area-inset-left));
         }
 
         #mobileControls {
             display: flex;
             flex-shrink: 0;
+        }
+
+        #info {
+            font-size: 14px;
+            line-height: 18px;
+            margin-top: 8px;
+        }
+
+        #message {
+            font-size: 16px;
+            padding: 10px 16px;
+        }
+    }
+
+    /* Landscape phones: keep the game and buttons inside the screen */
+    @media (orientation: landscape) and (max-height: 500px) {
+        body {
+            padding: 4px 10px;
+            padding-bottom: max(4px, env(safe-area-inset-bottom));
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        #gameContainer {
+            width: 100%;
+            gap: 0;
+        }
+
+        canvas {
+            width: min(95vw, 1000px, calc(166.6667dvh - 166.6667px));
+            max-width: 100%;
+            height: auto;
+        }
+
+        #info {
+            font-size: 11px;
+            line-height: 14px;
+            margin-top: 5px;
+        }
+
+        #mobileControls {
             width: min(100%, 440px);
-            justify-content: space-between;
-            align-items: center;
             gap: 12px;
+            margin-top: 5px;
             padding: 0 4px;
             padding-bottom: env(safe-area-inset-bottom);
         }
@@ -194,7 +192,6 @@
             min-height: 44px;
             border-radius: 10px;
             font-size: 22px;
-            padding: 0;
         }
 
         #jumpButton {
@@ -203,7 +200,6 @@
             font-size: 13px;
         }
     }
-
 </style>
 </head>
 
@@ -216,12 +212,12 @@
         ← → Move &nbsp; | &nbsp; Space Jump
     </div>
 
-    <div id="mobileControls" aria-label="Touch controls">
+    <div id="mobileControls" aria-label="Mobile game controls">
         <div class="controlGroup">
-            <button class="controlButton" id="leftButton" type="button" aria-label="Move left">◀</button>
-            <button class="controlButton" id="rightButton" type="button" aria-label="Move right">▶</button>
+            <button type="button" id="leftButton" class="controlButton" aria-label="Move left">◀</button>
+            <button type="button" id="rightButton" class="controlButton" aria-label="Move right">▶</button>
         </div>
-        <button class="controlButton" id="jumpButton" type="button" aria-label="Jump">JUMP</button>
+        <button type="button" id="jumpButton" class="controlButton" aria-label="Jump">JUMP</button>
     </div>
 </div>
 
@@ -287,6 +283,77 @@ const keys = {
 let jumpPressed = false;
 
 
+// Mobile buttons use the same input flags as the keyboard.
+// The game physics and drawing code remain unchanged.
+
+function bindTouchButton(buttonId, keyName, isJumpButton = false) {
+    const button = document.getElementById(buttonId);
+
+    function releaseButton() {
+        if (isJumpButton) {
+            keys.jump = false;
+        } else {
+            keys[keyName] = false;
+        }
+
+        button.classList.remove("pressed");
+    }
+
+    button.addEventListener("pointerdown", function(e) {
+        e.preventDefault();
+
+        if (button.setPointerCapture) {
+            button.setPointerCapture(e.pointerId);
+        }
+
+        if (isJumpButton) {
+            if (!keys.jump) {
+                jumpPressed = true;
+            }
+
+            keys.jump = true;
+        } else {
+            keys[keyName] = true;
+        }
+
+        button.classList.add("pressed");
+    });
+
+    button.addEventListener("pointerup", function(e) {
+        e.preventDefault();
+        releaseButton();
+    });
+
+    button.addEventListener("pointercancel", releaseButton);
+    button.addEventListener("lostpointercapture", releaseButton);
+}
+
+bindTouchButton("leftButton", "left");
+bindTouchButton("rightButton", "right");
+bindTouchButton("jumpButton", "jump", true);
+
+
+// Release held controls if the browser or app loses focus.
+
+function releaseAllControls() {
+    keys.left = false;
+    keys.right = false;
+    keys.jump = false;
+
+    document.querySelectorAll(".controlButton").forEach(function(button) {
+        button.classList.remove("pressed");
+    });
+}
+
+window.addEventListener("blur", releaseAllControls);
+
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        releaseAllControls();
+    }
+});
+
+
 document.addEventListener("keydown", function(e) {
 
     if (
@@ -329,80 +396,6 @@ document.addEventListener("keyup", function(e) {
     if (e.code === "Space") {
         keys.jump = false;
     }
-});
-
-
-// ============================================================
-// TOUCH CONTROLS
-// ============================================================
-
-const leftButton = document.getElementById("leftButton");
-const rightButton = document.getElementById("rightButton");
-const jumpButton = document.getElementById("jumpButton");
-
-function connectHoldButton(button, keyName) {
-    const press = function(event) {
-        event.preventDefault();
-        keys[keyName] = true;
-        button.classList.add("pressed");
-        if (button.setPointerCapture && event.pointerId !== undefined) {
-            try { button.setPointerCapture(event.pointerId); } catch (_) {}
-        }
-    };
-
-    const release = function(event) {
-        if (event) event.preventDefault();
-        keys[keyName] = false;
-        button.classList.remove("pressed");
-    };
-
-    button.addEventListener("pointerdown", press);
-    button.addEventListener("pointerup", release);
-    button.addEventListener("pointercancel", release);
-    button.addEventListener("lostpointercapture", release);
-    button.addEventListener("contextmenu", function(event) {
-        event.preventDefault();
-    });
-}
-
-connectHoldButton(leftButton, "left");
-connectHoldButton(rightButton, "right");
-
-jumpButton.addEventListener("pointerdown", function(event) {
-    event.preventDefault();
-    if (!keys.jump) jumpPressed = true;
-    keys.jump = true;
-    jumpButton.classList.add("pressed");
-    if (jumpButton.setPointerCapture && event.pointerId !== undefined) {
-        try { jumpButton.setPointerCapture(event.pointerId); } catch (_) {}
-    }
-});
-
-function releaseJump(event) {
-    if (event) event.preventDefault();
-    keys.jump = false;
-    jumpButton.classList.remove("pressed");
-}
-
-jumpButton.addEventListener("pointerup", releaseJump);
-jumpButton.addEventListener("pointercancel", releaseJump);
-jumpButton.addEventListener("lostpointercapture", releaseJump);
-jumpButton.addEventListener("contextmenu", function(event) {
-    event.preventDefault();
-});
-
-function releaseAllControls() {
-    keys.left = false;
-    keys.right = false;
-    keys.jump = false;
-    leftButton.classList.remove("pressed");
-    rightButton.classList.remove("pressed");
-    jumpButton.classList.remove("pressed");
-}
-
-window.addEventListener("blur", releaseAllControls);
-document.addEventListener("visibilitychange", function() {
-    if (document.hidden) releaseAllControls();
 });
 
 
@@ -1229,3 +1222,490 @@ function drawPlatforms() {
 
 
         // Grass
+
+        ctx.fillStyle =
+            "#55c34a";
+
+
+        ctx.fillRect(
+            x,
+            y,
+            platform.width,
+            6
+        );
+
+
+        // Dirt
+
+        ctx.fillStyle =
+            "#80512f";
+
+
+        ctx.fillRect(
+            x,
+            y + 6,
+            platform.width,
+            platform.height - 6
+        );
+
+
+        // Dirt details
+
+        ctx.fillStyle =
+            "#633d25";
+
+
+        for (
+            let dotX = x + 12;
+            dotX <
+                x + platform.width - 5;
+            dotX += 25
+        ) {
+
+            ctx.fillRect(
+                dotX,
+                y + 11,
+                5,
+                3
+            );
+        }
+    }
+}
+
+
+// ============================================================
+// DRAW SLUGS
+// ============================================================
+
+function drawSlugs() {
+
+    for (const slug of slugs) {
+
+        const x =
+            slug.x -
+            camera.x;
+
+        const y =
+            slug.y;
+
+
+        if (
+            x + slug.width < 0 ||
+            x > WIDTH
+        ) {
+            continue;
+        }
+
+
+        // ----------------------------------------------------
+        // Slug body
+        // ----------------------------------------------------
+
+        ctx.fillStyle =
+            "#d71920";
+
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            x + slug.width / 2,
+            y + slug.height / 2,
+            slug.width / 2,
+            slug.height / 2,
+            0,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+
+        // ----------------------------------------------------
+        // Slug highlight
+        // ----------------------------------------------------
+
+        ctx.fillStyle =
+            "#ff4545";
+
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            x + 8,
+            y + 3,
+            5,
+            2,
+            0,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+
+        // ----------------------------------------------------
+        // Eyes
+        // ----------------------------------------------------
+
+        ctx.fillStyle =
+            "#ffffff";
+
+
+        ctx.fillRect(
+            x + 17,
+            y + 1,
+            3,
+            3
+        );
+
+
+        ctx.fillRect(
+            x + 22,
+            y + 1,
+            3,
+            3
+        );
+
+
+        ctx.fillStyle =
+            "#111";
+
+
+        ctx.fillRect(
+            x + 18,
+            y + 2,
+            2,
+            2
+        );
+
+
+        ctx.fillRect(
+            x + 23,
+            y + 2,
+            2,
+            2
+        );
+    }
+}
+
+
+// ============================================================
+// DRAW GOAL
+// ============================================================
+
+function drawGoal() {
+
+    const x =
+        goal.x -
+        camera.x;
+
+    const y =
+        goal.y;
+
+
+    // Pole
+
+    ctx.fillStyle =
+        "#555";
+
+
+    ctx.fillRect(
+        x + 14,
+        y,
+        5,
+        goal.height
+    );
+
+
+    // Flag
+
+    ctx.fillStyle =
+        "#ff3d67";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x + 19,
+        y + 3
+    );
+
+    ctx.lineTo(
+        x + 35,
+        y + 12
+    );
+
+    ctx.lineTo(
+        x + 19,
+        y + 21
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+}
+
+
+// ============================================================
+// DRAW PLAYER
+// ============================================================
+
+function drawPlayer() {
+
+    const x =
+        player.x -
+        camera.x;
+
+    const y =
+        player.y;
+
+
+    // Body
+
+    ctx.fillStyle =
+        "#e53935";
+
+
+    ctx.fillRect(
+        x,
+        y,
+        player.width,
+        player.height
+    );
+
+
+    // Shirt
+
+    ctx.fillStyle =
+        "#1976d2";
+
+
+    ctx.fillRect(
+        x,
+        y + 18,
+        player.width,
+        player.height - 18
+    );
+
+
+    // Face
+
+    ctx.fillStyle =
+        "#ffd1a9";
+
+
+    ctx.fillRect(
+        x + 5,
+        y + 4,
+        20,
+        17
+    );
+
+
+    // Hair
+
+    ctx.fillStyle =
+        "#38251a";
+
+
+    ctx.fillRect(
+        x + 4,
+        y + 2,
+        22,
+        6
+    );
+
+
+    // Eyes
+
+    ctx.fillStyle =
+        "#111";
+
+
+    ctx.fillRect(
+        x + 9,
+        y + 10,
+        3,
+        3
+    );
+
+
+    ctx.fillRect(
+        x + 19,
+        y + 10,
+        3,
+        3
+    );
+
+
+    // Legs
+
+    ctx.fillStyle =
+        "#263238";
+
+
+    ctx.fillRect(
+        x + 3,
+        y + 34,
+        9,
+        8
+    );
+
+
+    ctx.fillRect(
+        x + 18,
+        y + 34,
+        9,
+        8
+    );
+}
+
+
+// ============================================================
+// DRAW HUD
+// ============================================================
+
+function drawHUD() {
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.45)";
+
+
+    ctx.fillRect(
+        15,
+        15,
+        300,
+        50
+    );
+
+
+    ctx.fillStyle =
+        "#fff";
+
+
+    ctx.font =
+        "16px Arial";
+
+
+    ctx.fillText(
+        "← → Move   SPACE Jump",
+        30,
+        36
+    );
+
+
+    ctx.font =
+        "13px Arial";
+
+
+    ctx.fillStyle =
+        "#ddd";
+
+
+    ctx.fillText(
+        "Reach the red flag — avoid slugs!",
+        30,
+        55
+    );
+}
+
+
+// ============================================================
+// MESSAGE
+// ============================================================
+
+const message =
+    document.getElementById("message");
+
+let messageTimeout = null;
+
+
+function showMessage(text) {
+
+    message.textContent =
+        text;
+
+
+    message.style.opacity =
+        "1";
+
+
+    clearTimeout(
+        messageTimeout
+    );
+
+
+    messageTimeout =
+        setTimeout(function() {
+
+            message.style.opacity =
+                "0";
+
+        }, 900);
+}
+
+
+// ============================================================
+// DRAW EVERYTHING
+// ============================================================
+
+function draw() {
+
+    ctx.clearRect(
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+
+    drawBackground();
+
+    drawPlatforms();
+
+    drawSlugs();
+
+    drawGoal();
+
+    drawPlayer();
+
+    drawHUD();
+}
+
+
+// ============================================================
+// MAIN GAME LOOP
+// ============================================================
+
+function gameLoop() {
+
+    updatePlayer();
+
+    updateSlugs();
+
+    checkSlugCollisions();
+
+    updateCamera();
+
+    checkGoal();
+
+    draw();
+
+    requestAnimationFrame(
+        gameLoop
+    );
+}
+
+
+// ============================================================
+// START GAME
+// ============================================================
+
+generateLevel();
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
