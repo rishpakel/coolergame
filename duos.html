@@ -3,10 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Random Platformer - Multiplayer</title>
-
-<!-- PeerJS: WebRTC peer-to-peer networking -->
-<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<title>Random Platformer</title>
 
 <style>
     * {
@@ -28,7 +25,7 @@
         align-items: center;
         min-height: 100vh;
         min-height: 100dvh;
-        overflow: auto;\n        padding: 12px;
+        overflow: hidden;
     }
 
     #gameContainer {
@@ -236,94 +233,130 @@
         }
     }
 
-    #lobby {
-        width: min(95vw, 1000px);
-        background: #1c263b;
-        border: 1px solid #394963;
+    /* Multiplayer lobby; hidden after a successful host/join. */
+    #lobbyPanel {
+        position: fixed;
+        top: max(12px, env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(560px, calc(100vw - 24px));
+        padding: 14px;
+        border: 1px solid rgba(255,255,255,0.25);
         border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 10px;
+        background: rgba(16, 21, 34, 0.96);
+        box-shadow: 0 12px 35px rgba(0,0,0,0.45);
+        z-index: 30;
+        text-align: left;
     }
-    #lobby h2 { margin: 0 0 10px; font-size: 19px; }
-    .lobbyControls { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin:8px 0; }
-    #lobby input, #lobby button {
-        border:1px solid #536783; border-radius:7px; padding:10px 12px;
-        font-size:14px; max-width:100%;
+
+    #lobbyPanel.hidden {
+        display: none;
     }
-    #lobby input { background:#101522; color:white; width:min(220px, 42vw); min-width:0; }
-    #lobby button { background:#3478f6; color:white; font-weight:bold; cursor:pointer; }
-    #lobby button:disabled { opacity:.5; cursor:not-allowed; }
-    #roomCode { color:#7ee7ff; font-weight:bold; overflow-wrap:anywhere; user-select:all; }
-    #roomInfo { margin-top:6px; }
-    #status { color:#d3dced; font-size:13px; line-height:1.4; overflow-wrap:anywhere; margin-top:6px; }
-    #info { margin-top:8px; font-size:14px; line-height:1.5; color:#ddd; }
-    #mobileControls { gap:clamp(10px,1.5vw,18px); }
-    #mobileControls button {
-        width:clamp(64px,8vw,88px); height:clamp(58px,7vw,76px);
-        min-width:56px; min-height:54px; padding:0; border:1px solid rgba(255,255,255,.35);
-        border-radius:13px; background:#26334b; color:#fff; box-shadow:0 4px 0 #111827;
-        font-size:clamp(25px,3vw,34px); font-weight:bold; touch-action:none;
-        user-select:none; -webkit-user-select:none;
+
+    #lobbyTitle {
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
     }
-    #mobileControls button.pressed { background:#405779; transform:translateY(2px); }
-    #jumpButton { width:clamp(92px,12vw,128px)!important; font-size:clamp(15px,2vw,19px)!important; }
-    #message { position:fixed; top:max(12px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
-        background:rgba(0,0,0,.75); padding:12px 22px; border-radius:8px; font-size:20px;
-        opacity:0; transition:opacity .2s; pointer-events:none; max-width:calc(100vw - 24px);
-        text-align:center; z-index:20; }
-    @media (hover:none) and (pointer:coarse), (max-width:600px) {
-        body { padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); }
-        #mobileControls { display:flex; flex-shrink:0; }
-        #infoRow { margin-top:6px; }
-        #info { font-size:13px; }
-        #message { font-size:16px; padding:10px 16px; }
+
+    .lobbyRow {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
     }
-    @media (orientation:landscape) and (max-height:500px) {
-        body { padding:4px 10px; min-height:100dvh; }
-        #gameContainer { gap:0; }
-        #lobby { padding:6px; margin-bottom:4px; }
-        #lobby h2 { font-size:15px; margin-bottom:4px; }
-        .lobbyControls { margin:4px 0; gap:5px; }
-        #lobby input, #lobby button { padding:6px 8px; }
-        #info { font-size:11px; margin-top:3px; }
-        #mobileControls { margin-top:4px; gap:10px; }
-        #mobileControls button { height:52px; min-height:48px; }
+
+    .lobbyRow input {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 42px;
+        padding: 0 10px;
+        border: 1px solid #66738a;
+        border-radius: 7px;
+        background: #0c1220;
+        color: #fff;
+        font: 16px Arial, sans-serif;
     }
+
+    .lobbyRow input::placeholder {
+        color: #aab3c4;
+    }
+
+    .lobbyRow button {
+        flex: 0 0 auto;
+        min-height: 42px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 7px;
+        background: #3478d4;
+        color: #fff;
+        font: bold 14px Arial, sans-serif;
+        cursor: pointer;
+    }
+
+    .lobbyRow button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+    }
+
+    #lobbyStatus {
+        margin: 10px 2px 0;
+        color: #cbd4e3;
+        font-size: 12px;
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    #lobbyStatus.error {
+        color: #ff9c9c;
+    }
+
+    @media (max-width: 420px) {
+        #lobbyPanel {
+            padding: 10px;
+        }
+
+        .lobbyRow button {
+            padding: 0 9px;
+            font-size: 12px;
+        }
+    }
+
 </style>
+</head>
+
 <body>
-<div id="gameContainer">
-    <div id="lobby">
-        <h2>🌎 Random Platformer Multiplayer</h2>
-        <div class="lobbyControls" id="setupControls">
-            <input id="playerName" maxlength="16" placeholder="Your player name" value="Player" aria-label="Your player name">
-            <input id="hostRoomId" maxlength="32" placeholder="Choose lobby code" autocomplete="off" aria-label="Lobby code for host">
-            <button id="hostButton">Create Lobby</button>
-        </div>
-        <div class="lobbyControls" id="joinControls">
-            <input id="joinCode" maxlength="32" placeholder="Enter host's code" autocomplete="off" aria-label="Host lobby code">
-            <button id="joinButton">Join Lobby</button>
-        </div>
-        <div id="roomInfo" hidden>Lobby code: <span id="roomCode"></span> <button id="copyButton" type="button">Copy</button></div>
-        <div id="status">Choose a lobby code and create a lobby, or enter a friend's code to join.</div>
+
+<div id="lobbyPanel" aria-label="Multiplayer lobby">
+    <div id="lobbyTitle">Multiplayer</div>
+    <div class="lobbyRow">
+        <input id="hostPeerIdInput" type="text" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Choose your lobby peer ID" aria-label="Choose your lobby peer ID">
+        <button type="button" id="createLobbyButton">Create lobby</button>
     </div>
+    <div class="lobbyRow">
+        <input id="joinPeerIdInput" type="text" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter host peer ID" aria-label="Enter host peer ID">
+        <button type="button" id="joinLobbyButton">Join lobby</button>
+    </div>
+    <div id="lobbyStatus" role="status">Host: choose a unique ID and create a lobby. Friends enter that same ID to join.</div>
+</div>
+
+<div id="gameContainer">
     <canvas id="game" width="1000" height="600"></canvas>
+
     <div id="mobileControls" aria-label="Mobile game controls">
         <div class="controlGroup">
-            <button type="button" id="leftButton" aria-label="Move left">◀</button>
-            <button type="button" id="rightButton" aria-label="Move right">▶</button>
+            <button type="button" id="leftButton" class="controlButton" aria-label="Move left">◀</button>
+            <button type="button" id="rightButton" class="controlButton" aria-label="Move right">▶</button>
         </div>
-        <button type="button" id="jumpButton" aria-label="Jump">JUMP</button>
+        <button type="button" id="jumpButton" class="controlButton" aria-label="Jump">JUMP</button>
     </div>
-    <div id="info">← → Move &nbsp; | &nbsp; Space Jump<br>Reach the red flag and avoid the slugs! Work together!</div>
 </div>
+
 <div id="message"></div>
 
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script>
 "use strict";
-
-// ============================================================
-// CONFIGURATION
-// ============================================================
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -337,44 +370,20 @@ const JUMP_POWER = 12;
 
 const PLAYER_WIDTH = 30;
 const PLAYER_HEIGHT = 42;
+
 const PLATFORM_HEIGHT = 18;
+
 const PLATFORM_COUNT = 22;
+
 const MAX_PLATFORM_GAP = 135;
+
 const MIN_PLATFORM_WIDTH = 100;
 const MAX_PLATFORM_WIDTH = 180;
 
 const SLUG_WIDTH = 25;
 const SLUG_HEIGHT = 8;
+
 const SLUG_SPEED = 1.2;
-
-const SNAPSHOT_INTERVAL = 50;
-const INPUT_INTERVAL = 35;
-
-// ============================================================
-// MULTIPLAYER STATE
-// ============================================================
-
-let peer = null;\nlet requestedPeerId = undefined;
-let connection = null;
-let isHost = false;
-let connected = false;
-let gameStarted = false;
-let connectionAttempt = 0;
-
-let localId = "";
-let remoteId = "";
-let localPlayerKey = "p1";
-let remotePlayerKey = "p2";
-
-let lastInputSent = 0;
-let lastSnapshotSent = 0;
-let lastSnapshotReceived = 0;
-let lastLevelId = -1;
-
-let gameMessage = "";
-let messageTimer = 0;
-let levelNumber = 1;
-let world = null;
 
 const keys = {
     left: false,
@@ -384,31 +393,578 @@ const keys = {
 
 let jumpPressed = false;
 
-const players = {
-    p1: makePlayer("Player 1", "#e53935"),
-    p2: makePlayer("Player 2", "#8e44ff")
-};
 
-function makePlayer(name, color) {
+// Multiplayer is optional: without creating/joining a lobby, the game plays as before.
+let peer = null;
+let hostConnection = null;
+let localPeerId = null;
+let hostPeerId = null;
+let lobbyMode = "offline"; // offline, hosting, host, joining, client
+let remotePlayers = Object.create(null);
+const hostConnections = new Map();
+let lastStateSentAt = 0;
+let lastInputSentAt = 0;
+let goalTransitionPending = false;
+
+const lobbyPanel = document.getElementById("lobbyPanel");
+const lobbyStatus = document.getElementById("lobbyStatus");
+const createLobbyButton = document.getElementById("createLobbyButton");
+const joinLobbyButton = document.getElementById("joinLobbyButton");
+const hostPeerIdInput = document.getElementById("hostPeerIdInput");
+const joinPeerIdInput = document.getElementById("joinPeerIdInput");
+
+function setLobbyStatus(text, isError = false) {
+    lobbyStatus.textContent = text;
+    lobbyStatus.classList.toggle("error", isError);
+}
+
+function hideLobbyPanel() {
+    lobbyPanel.classList.add("hidden");
+}
+
+function showLobbyPanel() {
+    lobbyPanel.classList.remove("hidden");
+}
+
+function validPeerId(id) {
+    // PeerJS IDs must start and end with a letter/number; hyphens and underscores are allowed inside.
+    return /^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$/.test(id);
+}
+
+function playerColorForPeer(id) {
+    if (id && hostPeerId && id === hostPeerId) {
+        return "#e53935";
+    }
+    if (!id) {
+        return "#e53935";
+    }
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+    }
+    return "hsl(" + (Math.abs(hash) % 360) + ", 75%, 48%)";
+}
+
+function showPeerError(error) {
+    const type = error && error.type ? error.type : "unknown";
+    let message = "Multiplayer error: " + (error && error.message ? error.message : type);
+
+    if (type === "unavailable-id") {
+        message = "That peer ID is already in use. Choose a different ID.";
+    } else if (type === "invalid-id") {
+        message = "Invalid peer ID. Use letters/numbers, with - or _ only in the middle.";
+    } else if (type === "peer-unavailable") {
+        message = "Host not found. Check the peer ID and make sure the host created the lobby.";
+    } else if (type === "network" || type === "server-error" || type === "socket-error") {
+        message = "Could not reach PeerJS signaling. Check your internet connection and try again.";
+    } else if (type === "browser-incompatible") {
+        message = "This browser does not support the WebRTC features needed for multiplayer.";
+    }
+
+    if (lobbyMode === "hosting" || lobbyMode === "joining") {
+        lobbyMode = "offline";
+        if (peer && !peer.destroyed) {
+            try { peer.destroy(); } catch (_) {}
+        }
+        peer = null;
+        hostConnection = null;
+        createLobbyButton.disabled = false;
+        joinLobbyButton.disabled = false;
+        showLobbyPanel();
+    }
+
+    setLobbyStatus(message, true);
+    showMessage(message, 3500);
+}
+
+function createRemotePlayer(id) {
+    const start = platforms[0];
+    const index = Object.keys(remotePlayers).length;
+    const spawnX = start
+        ? start.x + start.width / 2 - PLAYER_WIDTH / 2 + (index % 4) * 28
+        : 50;
+    const spawnY = start ? start.y - PLAYER_HEIGHT : 100;
+
     return {
-        name,
-        color,
-        x: 0,
-        y: 0,
+        id: id,
+        x: Math.max(start ? start.x : 0, Math.min(spawnX, start ? start.x + start.width - PLAYER_WIDTH : spawnX)),
+        y: spawnY,
         width: PLAYER_WIDTH,
         height: PLAYER_HEIGHT,
         vx: 0,
         vy: 0,
-        grounded: false,
-        wins: 0
+        grounded: true,
+        input: { left: false, right: false, jump: false },
+        jumpWasDown: false
     };
 }
 
-const camera = { x: 0, y: 0 };
+function getAllPlayers() {
+    const result = [{ id: localPeerId, entity: player }];
+    for (const id of Object.keys(remotePlayers)) {
+        result.push({ id: id, entity: remotePlayers[id] });
+    }
+    return result;
+}
 
-// ============================================================
-// HELPERS
-// ============================================================
+function serializeState() {
+    return {
+        type: "state",
+        platforms: platforms.map(function (p) {
+            return {
+                x: p.x,
+                y: p.y,
+                width: p.width,
+                height: p.height,
+                guaranteed: !!p.guaranteed
+            };
+        }),
+        slugs: slugs.map(function (slug) {
+            return {
+                x: slug.x,
+                y: slug.y,
+                width: slug.width,
+                height: slug.height,
+                vx: slug.vx,
+                platformIndex: platforms.indexOf(slug.platform)
+            };
+        }),
+        goal: {
+            x: goal.x,
+            y: goal.y,
+            width: goal.width,
+            height: goal.height
+        },
+        players: getAllPlayers().map(function (entry) {
+            const p = entry.entity;
+            return {
+                id: entry.id,
+                x: p.x,
+                y: p.y,
+                width: p.width,
+                height: p.height,
+                vx: p.vx,
+                vy: p.vy,
+                grounded: !!p.grounded
+            };
+        })
+    };
+}
+
+function applyState(state) {
+    if (!state || state.type !== "state" || !Array.isArray(state.platforms) || !Array.isArray(state.players)) {
+        return;
+    }
+
+    platforms = state.platforms.map(function (p) {
+        return {
+            x: p.x,
+            y: p.y,
+            width: p.width,
+            height: p.height,
+            guaranteed: !!p.guaranteed
+        };
+    });
+
+    slugs = (Array.isArray(state.slugs) ? state.slugs : []).map(function (s) {
+        const platformIndex = Number.isInteger(s.platformIndex) ? s.platformIndex : 0;
+        return {
+            x: s.x,
+            y: s.y,
+            width: s.width,
+            height: s.height,
+            vx: s.vx,
+            platform: platforms[platformIndex] || platforms[0]
+        };
+    });
+
+    if (state.goal) {
+        goal = {
+            x: state.goal.x,
+            y: state.goal.y,
+            width: state.goal.width,
+            height: state.goal.height
+        };
+    }
+
+    const localState = state.players.find(function (p) {
+        return p.id === localPeerId;
+    });
+
+    if (localState) {
+        player.x = localState.x;
+        player.y = localState.y;
+        player.width = localState.width || PLAYER_WIDTH;
+        player.height = localState.height || PLAYER_HEIGHT;
+        player.vx = localState.vx;
+        player.vy = localState.vy;
+        player.grounded = !!localState.grounded;
+    }
+
+    const updatedRemotes = Object.create(null);
+    for (const p of state.players) {
+        if (p.id === localPeerId || !p.id) {
+            continue;
+        }
+        updatedRemotes[p.id] = {
+            id: p.id,
+            x: p.x,
+            y: p.y,
+            width: p.width || PLAYER_WIDTH,
+            height: p.height || PLAYER_HEIGHT,
+            vx: p.vx,
+            vy: p.vy,
+            grounded: !!p.grounded,
+            input: { left: false, right: false, jump: false },
+            jumpWasDown: false
+        };
+    }
+    remotePlayers = updatedRemotes;
+}
+
+function safeSend(connection, payload) {
+    if (!connection || !connection.open) {
+        return;
+    }
+    try {
+        connection.send(payload);
+    } catch (error) {
+        console.warn("Could not send multiplayer data:", error);
+    }
+}
+
+function sendStateTo(connection) {
+    safeSend(connection, serializeState());
+}
+
+function broadcastState() {
+    const state = serializeState();
+    for (const connection of hostConnections.values()) {
+        if (connection && connection.open) {
+            safeSend(connection, state);
+        }
+    }
+}
+
+function setupIncomingConnection(connection) {
+    const id = connection.peer;
+
+    connection.on("data", function (data) {
+        if (!data || typeof data !== "object") {
+            return;
+        }
+        if (data.type === "input") {
+            if (!remotePlayers[id]) {
+                remotePlayers[id] = createRemotePlayer(id);
+            }
+            const input = data.input || {};
+            remotePlayers[id].input.left = !!input.left;
+            remotePlayers[id].input.right = !!input.right;
+            remotePlayers[id].input.jump = !!input.jump;
+        }
+    });
+
+    connection.on("open", function () {
+        hostConnections.set(id, connection);
+        if (!remotePlayers[id]) {
+            remotePlayers[id] = createRemotePlayer(id);
+        }
+        showMessage("Player joined: " + id, 1800);
+        sendStateTo(connection);
+    });
+
+    connection.on("close", function () {
+        hostConnections.delete(id);
+        delete remotePlayers[id];
+        showMessage("Player left", 1400);
+    });
+
+    connection.on("error", function (error) {
+        console.warn("Player connection error:", error);
+    });
+}
+
+function createLobby() {
+    const id = hostPeerIdInput.value.trim();
+    if (!id) {
+        setLobbyStatus("Enter the peer ID you want to host with.", true);
+        hostPeerIdInput.focus();
+        return;
+    }
+    if (!validPeerId(id)) {
+        setLobbyStatus("Use letters and numbers; hyphens or underscores may appear only between them.", true);
+        hostPeerIdInput.focus();
+        return;
+    }
+    if (typeof Peer === "undefined") {
+        setLobbyStatus("PeerJS could not load. Check your internet connection and reload the page.", true);
+        return;
+    }
+
+    createLobbyButton.disabled = true;
+    joinLobbyButton.disabled = true;
+    setLobbyStatus("Creating lobby “" + id + "”… please wait.");
+    lobbyMode = "hosting";
+    hostPeerId = id;
+
+    try {
+        peer = new Peer(id);
+    } catch (error) {
+        lobbyMode = "offline";
+        createLobbyButton.disabled = false;
+        joinLobbyButton.disabled = false;
+        setLobbyStatus("Could not create the peer: " + error.message, true);
+        return;
+    }
+
+    peer.on("open", function (openedId) {
+        localPeerId = openedId;
+        hostPeerId = openedId;
+        lobbyMode = "host";
+        createLobbyButton.disabled = false;
+        joinLobbyButton.disabled = false;
+        hideLobbyPanel();
+        showMessage("Lobby ready — share ID: " + openedId, 4000);
+    });
+
+    peer.on("connection", setupIncomingConnection);
+    peer.on("error", showPeerError);
+    peer.on("disconnected", function () {
+        if (lobbyMode === "host") {
+            showMessage("Signaling server disconnected; existing game connections may continue.", 2600);
+        }
+    });
+}
+
+function joinLobby() {
+    const id = joinPeerIdInput.value.trim();
+    if (!id) {
+        setLobbyStatus("Enter the host's peer ID first.", true);
+        joinPeerIdInput.focus();
+        return;
+    }
+    if (!validPeerId(id)) {
+        setLobbyStatus("That peer ID format is invalid.", true);
+        joinPeerIdInput.focus();
+        return;
+    }
+    if (typeof Peer === "undefined") {
+        setLobbyStatus("PeerJS could not load. Check your internet connection and reload the page.", true);
+        return;
+    }
+
+    createLobbyButton.disabled = true;
+    joinLobbyButton.disabled = true;
+    setLobbyStatus("Connecting to “" + id + "”… please wait.");
+    lobbyMode = "joining";
+    hostPeerId = id;
+
+    try {
+        peer = new Peer();
+    } catch (error) {
+        lobbyMode = "offline";
+        createLobbyButton.disabled = false;
+        joinLobbyButton.disabled = false;
+        setLobbyStatus("Could not start PeerJS: " + error.message, true);
+        return;
+    }
+
+    peer.on("open", function (openedId) {
+        localPeerId = openedId;
+        const connection = peer.connect(id, {
+            reliable: true,
+            serialization: "json"
+        });
+        hostConnection = connection;
+
+        connection.on("data", function (data) {
+            if (data && data.type === "state") {
+                applyState(data);
+            }
+        });
+
+        connection.on("open", function () {
+            lobbyMode = "client";
+            createLobbyButton.disabled = false;
+            joinLobbyButton.disabled = false;
+            hideLobbyPanel();
+            showMessage("Joined lobby", 1800);
+        });
+
+        connection.on("close", function () {
+            if (lobbyMode === "client") {
+                lobbyMode = "offline";
+                hostConnection = null;
+                hostPeerId = null;
+                remotePlayers = Object.create(null);
+                showMessage("Disconnected from the host", 2500);
+            }
+        });
+
+        connection.on("error", function (error) {
+            showPeerError(error);
+        });
+    });
+
+    peer.on("error", showPeerError);
+}
+
+function sendClientInput(now) {
+    if (lobbyMode !== "client" || !hostConnection || !hostConnection.open) {
+        return;
+    }
+    if (now - lastInputSentAt < 40) {
+        return;
+    }
+    lastInputSentAt = now;
+    safeSend(hostConnection, {
+        type: "input",
+        input: {
+            left: keys.left,
+            right: keys.right,
+            jump: keys.jump
+        }
+    });
+}
+
+createLobbyButton.addEventListener("click", createLobby);
+joinLobbyButton.addEventListener("click", joinLobby);
+hostPeerIdInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") createLobby();
+});
+joinPeerIdInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") joinLobby();
+});
+
+// Mobile buttons use the same input flags as the keyboard.
+function bindTouchButton(buttonId, keyName, isJumpButton = false) {
+    const button = document.getElementById(buttonId);
+
+    function releaseButton() {
+        if (isJumpButton) {
+            keys.jump = false;
+        } else {
+            keys[keyName] = false;
+        }
+
+        button.classList.remove("pressed");
+    }
+
+    button.addEventListener("pointerdown", function(e) {
+        e.preventDefault();
+
+        if (button.setPointerCapture) {
+            button.setPointerCapture(e.pointerId);
+        }
+
+        if (isJumpButton) {
+            if (!keys.jump) {
+                jumpPressed = true;
+            }
+
+            keys.jump = true;
+        } else {
+            keys[keyName] = true;
+        }
+
+        button.classList.add("pressed");
+    });
+
+    button.addEventListener("pointerup", function(e) {
+        e.preventDefault();
+        releaseButton();
+    });
+
+    button.addEventListener("pointercancel", releaseButton);
+    button.addEventListener("lostpointercapture", releaseButton);
+}
+
+bindTouchButton("leftButton", "left");
+bindTouchButton("rightButton", "right");
+bindTouchButton("jumpButton", "jump", true);
+
+function releaseAllControls() {
+    keys.left = false;
+    keys.right = false;
+    keys.jump = false;
+
+    document.querySelectorAll(".controlButton").forEach(function(button) {
+        button.classList.remove("pressed");
+    });
+}
+
+window.addEventListener("blur", releaseAllControls);
+
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        releaseAllControls();
+    }
+});
+
+document.addEventListener("keydown", function(e) {
+    if (
+        e.code === "ArrowLeft" ||
+        e.code === "ArrowRight" ||
+        e.code === "Space"
+    ) {
+        e.preventDefault();
+    }
+
+    if (e.code === "ArrowLeft") {
+        keys.left = true;
+    }
+
+    if (e.code === "ArrowRight") {
+        keys.right = true;
+    }
+
+    if (e.code === "Space") {
+        if (!keys.jump) {
+            jumpPressed = true;
+        }
+
+        keys.jump = true;
+    }
+});
+
+document.addEventListener("keyup", function(e) {
+    if (e.code === "ArrowLeft") {
+        keys.left = false;
+    }
+
+    if (e.code === "ArrowRight") {
+        keys.right = false;
+    }
+
+    if (e.code === "Space") {
+        keys.jump = false;
+    }
+});
+
+const player = {
+    x: 0,
+    y: 0,
+    width: PLAYER_WIDTH,
+    height: PLAYER_HEIGHT,
+    vx: 0,
+    vy: 0,
+    grounded: false
+};
+
+let platforms = [];
+let slugs = [];
+
+let goal = {
+    x: 0,
+    y: 0,
+    width: 35,
+    height: 50
+};
+
+const camera = {
+    x: 0,
+    y: 0
+};
 
 function random(min, max) {
     return Math.random() * (max - min) + min;
@@ -418,132 +974,9 @@ function randomInt(min, max) {
     return Math.floor(random(min, max + 1));
 }
 
-function showMessage(text, duration = 1600) {
-    gameMessage = text;
-
-    const el = document.getElementById("message");
-    el.textContent = text;
-    el.style.opacity = "1";
-
-    clearTimeout(messageTimer);
-    messageTimer = setTimeout(() => {
-        el.style.opacity = "0";
-    }, duration);
-}
-
-function setStatus(text) {
-    document.getElementById("status").textContent = text;
-}
-
-function send(data) {
-    if (connection && connection.open) {
-        try {
-            connection.send(data);
-        } catch (err) {
-            console.error("Network send failed:", err);
-        }
-    }
-}
-
-function copyRoomId() {
-    const id = localId;
-    if (!id) return;
-
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(id).then(() => {
-            showMessage("Room ID copied!");
-        }).catch(() => {
-            window.prompt("Copy this room ID:", id);
-        });
-    } else {
-        window.prompt("Copy this room ID:", id);
-    }
-}
-
-document.getElementById("copyButton").addEventListener("click", copyRoomId);
-
-// ============================================================
-// INPUT
-// ============================================================
-
-document.addEventListener("keydown", e => {
-    if (["ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
-        e.preventDefault();
-    }
-
-    if (e.code === "ArrowLeft" || e.code === "KeyA") {
-        keys.left = true;
-    }
-
-    if (e.code === "ArrowRight" || e.code === "KeyD") {
-        keys.right = true;
-    }
-
-    if (e.code === "Space" || e.code === "ArrowUp" ||
-        e.code === "KeyW") {
-        if (!keys.jump) jumpPressed = true;
-        keys.jump = true;
-    }
-});
-
-document.addEventListener("keyup", e => {
-    if (e.code === "ArrowLeft" || e.code === "KeyA") {
-        keys.left = false;
-    }
-
-    if (e.code === "ArrowRight" || e.code === "KeyD") {
-        keys.right = false;
-    }
-
-    if (e.code === "Space" || e.code === "ArrowUp" ||
-        e.code === "KeyW") {
-        keys.jump = false;
-    }
-});
-
-window.addEventListener("blur", () => {
-    keys.left = keys.right = keys.jump = false;
-    jumpPressed = false;
-});
-
-function bindTouchButton(id, key) {
-    const button = document.getElementById(id);
-
-    const start = e => {
-        e.preventDefault();
-        if (key === "jump") {
-            if (!keys.jump) jumpPressed = true;
-            keys.jump = true;
-        } else {
-            keys[key] = true;
-        }
-        try { button.setPointerCapture(e.pointerId); } catch (_) {}
-    };
-
-    const end = e => {
-        e.preventDefault();
-        if (key === "jump") keys.jump = false;
-        else keys[key] = false;
-    };
-
-    button.addEventListener("pointerdown", start);
-    button.addEventListener("pointerup", end);
-    button.addEventListener("pointercancel", end);
-    button.addEventListener("lostpointercapture", end);
-}
-
-bindTouchButton("leftButton", "left");
-bindTouchButton("rightButton", "right");
-bindTouchButton("jumpButton", "jump");
-
-// ============================================================
-// WORLD GENERATION
-// Only the host generates and simulates the shared world.
-// ============================================================
-
 function generateLevel() {
-    const platforms = [];
-    const slugs = [];
+    platforms = [];
+    slugs = [];
 
     const startPlatform = {
         x: 40,
@@ -557,17 +990,31 @@ function generateLevel() {
 
     let currentX = startPlatform.x;
     let currentY = startPlatform.y;
-    const route = [];
 
-    for (let i = 0; i < 16; i++) {
-        currentX += randomInt(80, MAX_PLATFORM_GAP);
-        currentY += randomInt(-80, 65);
-        currentY = Math.max(100, Math.min(HEIGHT - 80, currentY));
+    const route = [];
+    const routeCount = 16;
+
+    for (let i = 0; i < routeCount; i++) {
+        const horizontalMove = randomInt(80, MAX_PLATFORM_GAP);
+        currentX += horizontalMove;
+
+        const verticalMove = randomInt(-80, 65);
+        currentY += verticalMove;
+
+        currentY = Math.max(
+            100,
+            Math.min(HEIGHT - 80, currentY)
+        );
+
+        const width = randomInt(
+            MIN_PLATFORM_WIDTH,
+            MAX_PLATFORM_WIDTH
+        );
 
         const platform = {
             x: currentX,
             y: currentY,
-            width: randomInt(MIN_PLATFORM_WIDTH, MAX_PLATFORM_WIDTH),
+            width: width,
             height: PLATFORM_HEIGHT,
             guaranteed: true
         };
@@ -578,17 +1025,27 @@ function generateLevel() {
 
     const lastPlatform = route[route.length - 1];
 
-    const goal = {
-        x: lastPlatform.x + lastPlatform.width - 50,
-        y: lastPlatform.y - 50,
-        width: 35,
-        height: 50
-    };
+    goal.x =
+        lastPlatform.x +
+        lastPlatform.width -
+        50;
+
+    goal.y =
+        lastPlatform.y -
+        goal.height;
 
     for (let i = 0; i < PLATFORM_COUNT; i++) {
         const x = random(0, currentX + 200);
         const y = random(80, HEIGHT - 50);
         const width = randomInt(70, 150);
+
+        const platform = {
+            x: x,
+            y: y,
+            width: width,
+            height: PLATFORM_HEIGHT,
+            guaranteed: false
+        };
 
         let overlapsRoute = false;
 
@@ -604,398 +1061,99 @@ function generateLevel() {
         }
 
         if (!overlapsRoute) {
-            platforms.push({
-                x, y, width,
-                height: PLATFORM_HEIGHT,
-                guaranteed: false
-            });
+            platforms.push(platform);
         }
     }
 
-    for (let i = 1; i < platforms.length; i++) {
-        const p = platforms[i];
+    createSlugs();
 
-        if (Math.random() > 0.45) continue;
+    player.x =
+        startPlatform.x +
+        startPlatform.width / 2 -
+        player.width / 2;
 
-        if (
-            Math.abs(p.x - goal.x) < 50 &&
-            Math.abs(p.y - goal.y) < 50
-        ) continue;
+    player.y =
+        startPlatform.y -
+        player.height;
 
-        slugs.push({
-            platformIndex: i,
-            width: SLUG_WIDTH,
-            height: SLUG_HEIGHT,
-            x: random(p.x + 10, p.x + p.width - SLUG_WIDTH - 10),
-            y: p.y - SLUG_HEIGHT,
-            vx: Math.random() < 0.5 ? -SLUG_SPEED : SLUG_SPEED
-        });
-    }
-
-    world = { platforms, slugs, goal };
-    levelNumber++;
-
-    resetPlayer(players.p1);
-    resetPlayer(players.p2);
-
-    camera.x = 0;
-
-    lastLevelId++;
-}
-
-function resetPlayer(player) {
-    if (!world || !world.platforms.length) return;
-
-    const start = world.platforms[0];
-
-    player.x = start.x + start.width / 2 - player.width / 2;
-    player.y = start.y - player.height;
     player.vx = 0;
     player.vy = 0;
     player.grounded = true;
-}
-
-function serializeWorld() {
-    return {
-        platforms: world.platforms,
-        slugs: world.slugs,
-        goal: world.goal,
-        levelNumber,
-        levelId: lastLevelId
-    };
-}
-
-function loadWorld(data) {
-    if (!data || !Array.isArray(data.platforms) ||
-        !Array.isArray(data.slugs) || !data.goal) return;
-
-    world = {
-        platforms: data.platforms,
-        slugs: data.slugs,
-        goal: data.goal
-    };
-
-    levelNumber = data.levelNumber || 1;
-    lastLevelId = data.levelId ?? lastLevelId;
 
     camera.x = 0;
+    camera.y = 0;
+
+    // When the host advances to a new level, bring every connected player back to the start.
+    for (const remote of Object.values(remotePlayers)) {
+        remote.x = startPlatform.x + startPlatform.width / 2 - remote.width / 2;
+        remote.y = startPlatform.y - remote.height;
+        remote.vx = 0;
+        remote.vy = 0;
+        remote.grounded = true;
+        remote.jumpWasDown = !!(remote.input && remote.input.jump);
+    }
 }
 
-// ============================================================
-// PEERJS CONNECTION
-// ============================================================
+function createSlugs() {
+    slugs = [];
 
-document.getElementById("hostButton").addEventListener("click", createGame);
-document.getElementById("joinButton").addEventListener("click", joinGame);
+    for (let i = 0; i < platforms.length; i++) {
+        const platform = platforms[i];
 
-function getPlayerName() {
-    const value = document.getElementById("playerName").value.trim();
-    return value.slice(0, 16) || "Player";
-}
-
-function createPeer() {
-    if (typeof Peer === "undefined") {
-        setStatus("PeerJS could not load. Check your internet connection and reload.");
-        return null;
-    }
-
-    try {
-        peer = new Peer(requestedPeerId, { debug: 1 });
-    } catch (err) {
-        setStatus("Could not initialize PeerJS: " + err.message);
-        return null;
-    }
-
-    peer.on("error", err => {
-        console.error("PeerJS error:", err);
-        setStatus("Network error: " + err.type + ". Check your connection and try again.");
-    });
-
-    peer.on("disconnected", () => {
-        setStatus("Signaling server disconnected. Existing peer connections may still work.");
-    });
-
-    peer.on("close", () => {
-        setStatus("Peer connection closed.");
-    });
-
-    return peer;
-}
-
-function createGame() {
-    if (peer) return;
-    const requested = document.getElementById("hostRoomId").value.trim();
-    if (!requested) {
-        setStatus("Type a lobby code first. Your friend will enter this exact code.");
-        document.getElementById("hostRoomId").focus();
-        return;
-    }
-    // PeerJS IDs should use simple characters; keep the visible code identical to the ID.
-    if (!/^[A-Za-z0-9_-]{1,32}$/.test(requested)) {
-        setStatus("Use 1–32 letters, numbers, hyphens, or underscores for the lobby code.");
-        return;
-    }
-    requestedPeerId = requested;
-    isHost = true;
-    connected = false;
-    gameStarted = true;
-
-    localPlayerKey = "p1";
-    remotePlayerKey = "p2";
-
-    players.p1.name = getPlayerName();
-    players.p2.name = "Waiting for player...";
-    players.p1.color = "#e53935";
-    players.p2.color = "#8e44ff";
-
-    setStatus("Creating lobby “" + requestedPeerId + "”…");
-    document.getElementById("setupControls").hidden = true;
-    document.getElementById("joinControls").hidden = true;
-
-    document.getElementById("hostButton").disabled = true;
-    document.getElementById("joinButton").disabled = true;
-
-    const p = createPeer();
-    if (!p) return;
-
-    p.on("open", id => {
-        localId = id;
-
-        document.getElementById("roomInfo").hidden = false;
-        document.getElementById("roomCode").textContent = id;
-
-        setStatus("Room created! Share your Peer ID with your friend.");
-        showMessage("Room created! Waiting for a player...", 2500);
-
-        generateLevel();
-
-        p.on("connection", conn => {
-            if (connection && connection.open) {
-                conn.close();
-                return;
-            }
-
-            connection = conn;
-            setupConnection(conn, true);
-        });
-    });
-}
-
-function joinGame() {
-    if (peer) return;
-
-    const hostId = document.getElementById("joinCode").value.trim();
-
-    if (!hostId) {
-        setStatus("Enter the host's Peer ID first.");
-        return;
-    }
-
-    isHost = false;
-    connected = false;
-    gameStarted = true;
-
-    localPlayerKey = "p2";
-    remotePlayerKey = "p1";
-
-    players.p2.name = getPlayerName();
-    players.p2.color = "#8e44ff";
-
-    setStatus("Connecting to lobby “" + hostId + "”…");
-    document.getElementById("setupControls").hidden = true;
-    document.getElementById("joinControls").hidden = true;
-    document.getElementById("hostButton").disabled = true;
-    document.getElementById("joinButton").disabled = true;
-
-    const p = createPeer();
-    if (!p) return;
-
-    p.on("open", id => {
-        localId = id;
-
-        connection = p.connect(hostId, {
-            reliable: true,
-            serialization: "json",
-            metadata: { name: getPlayerName() }
-        });
-
-        setupConnection(connection, false);
-    });
-}
-
-function setupConnection(conn, hostSide) {
-    connectionAttempt++;
-    const attempt = connectionAttempt;
-
-    conn.on("open", () => {
-        if (attempt !== connectionAttempt) return;
-
-        connected = true;
-        remoteId = conn.peer;
-
-        if (hostSide) {
-            players.p2.name = conn.metadata?.name || "Player 2";
-            players.p2.color = "#8e44ff";
-
-            setStatus("Connected! You are the host. Both players are ready.");
-            showMessage("Player joined!", 2000);
-
-            send({
-                type: "welcome",
-                playerKey: "p2",
-                name: players.p1.name,
-                world: serializeWorld(),
-                players: packPlayers(),
-                hostTime: Date.now()
-            });
-        } else {
-            setStatus("Connected to host! Loading the shared level...");
-            showMessage("Connected to host!", 2000);
-
-            send({
-                type: "hello",
-                name: getPlayerName()
-            });
-        }
-    });
-
-    conn.on("data", data => {
-        if (attempt !== connectionAttempt) return;
-        if (!data || typeof data !== "object") return;
-
-        if (isHost) handleHostMessage(data);
-        else handleGuestMessage(data);
-    });
-
-    conn.on("close", () => {
-        if (attempt !== connectionAttempt) return;
-
-        connected = false;
-        connection = null;
-        connectionAttempt++;
-
-        setStatus("Player disconnected. Refresh to create or join another room.");
-        showMessage("Player disconnected.", 2500);
-    });
-
-    conn.on("error", err => {
-        console.error("Data connection error:", err);
-        setStatus("Connection error: " + err.message);
-    });
-}
-
-function handleHostMessage(data) {
-    if (data.type === "hello") {
-        players.p2.name = String(data.name || "Player 2").slice(0, 16);
-        showMessage(players.p2.name + " joined!", 2000);
-
-        send({
-            type: "welcome",
-            playerKey: "p2",
-            name: players.p1.name,
-            world: serializeWorld(),
-            players: packPlayers(),
-            hostTime: Date.now()
-        });
-    }
-
-    if (data.type === "input") {
-        // The host simulates the guest's character.
-        const input = data.input || {};
-        remoteInput.left = !!input.left;
-        remoteInput.right = !!input.right;
-
-        if (input.jump && !remoteInput.jump) {
-            remoteJumpPressed = true;
+        if (i === 0) {
+            continue;
         }
 
-        remoteInput.jump = !!input.jump;
-    }
-}
-
-function handleGuestMessage(data) {
-    if (data.type === "welcome") {
-        players.p1.name = String(data.name || "Host").slice(0, 16);
-        players.p1.color = "#e53935";
-        players.p2.name = getPlayerName();
-
-        loadWorld(data.world);
-
-        if (data.players) applyPlayers(data.players);
-
-        gameStarted = true;
-        showMessage("Level loaded! Good luck!", 2000);
-        return;
-    }
-
-    if (data.type === "snapshot") {
-        if (data.levelId !== lastLevelId) {
-            loadWorld(data.world);
-        } else if (data.world && world) {
-            // Keep the authoritative slug positions synchronized.
-            world.slugs = data.world.slugs;
+        if (Math.random() > 0.45) {
+            continue;
         }
 
-        if (data.players) applyPlayers(data.players);
+        if (
+            Math.abs(platform.x - goal.x) < 50 &&
+            Math.abs(platform.y - goal.y) < 50
+        ) {
+            continue;
+        }
 
-        if (data.levelNumber) levelNumber = data.levelNumber;
-
-        lastSnapshotReceived = performance.now();
-
-        if (data.message) showMessage(data.message, 1600);
-    }
-}
-
-const remoteInput = {
-    left: false,
-    right: false,
-    jump: false
-};
-
-let remoteJumpPressed = false;
-
-function packPlayers() {
-    const result = {};
-
-    for (const key of ["p1", "p2"]) {
-        const p = players[key];
-
-        result[key] = {
-            name: p.name,
-            color: p.color,
-            x: p.x,
-            y: p.y,
-            vx: p.vx,
-            vy: p.vy,
-            grounded: p.grounded,
-            wins: p.wins
+        const slug = {
+            platform: platform,
+            width: SLUG_WIDTH,
+            height: SLUG_HEIGHT,
+            x: random(
+                platform.x + 10,
+                platform.x + platform.width - SLUG_WIDTH - 10
+            ),
+            y: platform.y - SLUG_HEIGHT,
+            vx: Math.random() < 0.5 ? -SLUG_SPEED : SLUG_SPEED
         };
-    }
 
-    return result;
-}
-
-function applyPlayers(data) {
-    for (const key of ["p1", "p2"]) {
-        if (!data[key]) continue;
-
-        const src = data[key];
-        const dst = players[key];
-
-        dst.name = String(src.name || dst.name).slice(0, 16);
-        dst.color = src.color || dst.color;
-        dst.x = Number(src.x) || 0;
-        dst.y = Number(src.y) || 0;
-        dst.vx = Number(src.vx) || 0;
-        dst.vy = Number(src.vy) || 0;
-        dst.grounded = !!src.grounded;
-        dst.wins = Number(src.wins) || 0;
+        slugs.push(slug);
     }
 }
 
-// ============================================================
-// PHYSICS
-// ============================================================
+function updateSlugs() {
+    for (const slug of slugs) {
+        slug.x += slug.vx;
+
+        const platform = slug.platform;
+        const leftEdge = platform.x;
+        const rightEdge = platform.x + platform.width - slug.width;
+
+        if (slug.x <= leftEdge) {
+            slug.x = leftEdge;
+            slug.vx = Math.abs(slug.vx);
+        }
+
+        if (slug.x >= rightEdge) {
+            slug.x = rightEdge;
+            slug.vx = -Math.abs(slug.vx);
+        }
+
+        if (Math.random() < 0.004) {
+            slug.vx *= -1;
+        }
+    }
+}
 
 function isColliding(a, b) {
     return (
@@ -1006,239 +1164,198 @@ function isColliding(a, b) {
     );
 }
 
-function updatePlayer(player, input, jump) {
-    if (!world) return;
-
+function updatePlayerEntity(entity, input, isLocalPlayer) {
     if (input.left) {
-        player.vx = -MOVE_SPEED;
+        entity.vx = -MOVE_SPEED;
     } else if (input.right) {
-        player.vx = MOVE_SPEED;
+        entity.vx = MOVE_SPEED;
     } else {
-        player.vx *= 0.8;
-        if (Math.abs(player.vx) < 0.05) player.vx = 0;
-    }
-
-    if (jump && player.grounded) {
-        player.vy = -JUMP_POWER;
-        player.grounded = false;
-    }
-
-    player.vy += GRAVITY;
-    player.x += player.vx;
-
-    const oldY = player.y;
-    player.y += player.vy;
-    player.grounded = false;
-
-    for (const platform of world.platforms) {
-        if (player.vy < 0) continue;
-
-        const oldBottom = oldY + player.height;
-        const newBottom = player.y + player.height;
-
-        if (
-            oldBottom <= platform.y &&
-            newBottom >= platform.y &&
-            player.x + player.width > platform.x &&
-            player.x < platform.x + platform.width
-        ) {
-            player.y = platform.y - player.height;
-            player.vy = 0;
-            player.grounded = true;
+        entity.vx *= 0.8;
+        if (Math.abs(entity.vx) < 0.05) {
+            entity.vx = 0;
         }
     }
 
-    if (player.x < 0) {
-        player.x = 0;
-        player.vx = 0;
+    const jumpDown = !!input.jump;
+    const shouldJump = isLocalPlayer
+        ? jumpPressed
+        : (jumpDown && !entity.jumpWasDown);
+
+    if (shouldJump && entity.grounded) {
+        entity.vy = -JUMP_POWER;
+        entity.grounded = false;
     }
 
-    if (player.y > HEIGHT + 200) {
-        resetPlayer(player);
-        return "fell";
+    if (isLocalPlayer) {
+        jumpPressed = false;
     }
+    entity.jumpWasDown = jumpDown;
 
-    return null;
-}
+    entity.vy += GRAVITY;
+    entity.x += entity.vx;
 
-function updateSlugs() {
-    if (!world) return;
+    const oldY = entity.y;
+    entity.y += entity.vy;
+    entity.grounded = false;
 
-    for (const slug of world.slugs) {
-        const platform = world.platforms[slug.platformIndex];
-        if (!platform) continue;
+    for (const platform of platforms) {
+        if (entity.vy >= 0) {
+            const playerBottom = entity.y + entity.height;
+            const oldBottom = oldY + entity.height;
+            const platformTop = platform.y;
 
-        slug.x += slug.vx;
-
-        const left = platform.x;
-        const right = platform.x + platform.width - slug.width;
-
-        if (slug.x <= left) {
-            slug.x = left;
-            slug.vx = Math.abs(slug.vx);
-        }
-
-        if (slug.x >= right) {
-            slug.x = right;
-            slug.vx = -Math.abs(slug.vx);
-        }
-
-        if (Math.random() < 0.004) slug.vx *= -1;
-    }
-}
-
-function checkSlugCollisions(player) {
-    if (!world) return false;
-
-    for (const slug of world.slugs) {
-        if (isColliding(player, slug)) {
-            resetPlayer(player);
-            return true;
+            if (
+                oldBottom <= platformTop &&
+                playerBottom >= platformTop &&
+                entity.x + entity.width > platform.x &&
+                entity.x < platform.x + platform.width
+            ) {
+                entity.y = platformTop - entity.height;
+                entity.vy = 0;
+                entity.grounded = true;
+            }
         }
     }
 
-    return false;
+    if (entity.x < 0) {
+        entity.x = 0;
+        entity.vx = 0;
+    }
+
+    if (entity.y > HEIGHT + 200) {
+        resetPlayer(entity);
+    }
 }
 
-function checkGoal(player) {
-    return !!world && isColliding(player, world.goal);
+function updatePlayer() {
+    updatePlayerEntity(player, keys, true);
 }
 
-// ============================================================
-// HOST GAME SIMULATION AND SYNCHRONIZATION
-// ============================================================
+function checkSlugCollisions() {
+    const playersToCheck = lobbyMode === "host"
+        ? getAllPlayers()
+        : [{ id: localPeerId, entity: player }];
 
-function hostUpdate() {
-    if (!world) return;
-
-    updateSlugs();
-
-    const fall1 = updatePlayer(players.p1, keys, jumpPressed);
-    const fall2 = updatePlayer(players.p2, remoteInput, remoteJumpPressed);
-
-    jumpPressed = false;
-    remoteJumpPressed = false;
-
-    if (fall1 || fall2) {
-        // A fall resets only the player who fell.
-    }
-
-    if (checkSlugCollisions(players.p1)) {
-        showMessage("Ouch! Player 1 was hit!");
-    }
-
-    if (checkSlugCollisions(players.p2)) {
-        showMessage("Ouch! Player 2 was hit!");
-    }
-
-    // Either player reaching the flag completes the level for both.
-    if (checkGoal(players.p1) || checkGoal(players.p2)) {
-        players.p1.wins++;
-        players.p2.wins++;
-
-        showMessage("Level complete! Loading the next level!", 1800);
-        generateLevel();
-
-        if (connected) {
-            send({
-                type: "snapshot",
-                world: serializeWorld(),
-                players: packPlayers(),
-                levelId: lastLevelId,
-                levelNumber,
-                message: "New level!"
-            });
+    for (const entry of playersToCheck) {
+        for (const slug of slugs) {
+            if (isColliding(entry.entity, slug)) {
+                resetPlayer(entry.entity);
+                showMessage("Ouch! Try again!");
+                return;
+            }
         }
     }
 }
 
-function guestSendInput() {
-    if (!connected || isHost) return;
+function resetPlayer(targetPlayer = player) {
+    const start = platforms[0];
 
-    const now = performance.now();
-    if (now - lastInputSent < INPUT_INTERVAL) return;
+    targetPlayer.x =
+        start.x +
+        start.width / 2 -
+        targetPlayer.width / 2;
 
-    lastInputSent = now;
+    targetPlayer.y =
+        start.y -
+        targetPlayer.height;
 
-    send({
-        type: "input",
-        input: {
-            left: keys.left,
-            right: keys.right,
-            jump: keys.jump
+    targetPlayer.vx = 0;
+    targetPlayer.vy = 0;
+    targetPlayer.grounded = true;
+    targetPlayer.jumpWasDown = !!(targetPlayer.input && targetPlayer.input.jump);
+
+    if (targetPlayer === player) {
+        camera.x = 0;
+    }
+}
+
+function checkGoal() {
+    if (lobbyMode === "host" && goalTransitionPending) {
+        return;
+    }
+
+    const goalHitbox = {
+        x: goal.x,
+        y: goal.y,
+        width: goal.width,
+        height: goal.height
+    };
+
+    const playersToCheck = lobbyMode === "host"
+        ? getAllPlayers()
+        : [{ id: localPeerId, entity: player }];
+
+    for (const entry of playersToCheck) {
+        if (isColliding(entry.entity, goalHitbox)) {
+            showMessage("Level complete! New level!");
+
+            if (lobbyMode === "host") {
+                goalTransitionPending = true;
+                setTimeout(function() {
+                    generateLevel();
+                    goalTransitionPending = false;
+                    broadcastState();
+                }, 600);
+            } else {
+                setTimeout(function() {
+                    generateLevel();
+                }, 600);
+            }
+            return;
         }
-    });
+    }
 }
-
-function hostSendSnapshot() {
-    if (!connected || !isHost || !world) return;
-
-    const now = performance.now();
-    if (now - lastSnapshotSent < SNAPSHOT_INTERVAL) return;
-
-    lastSnapshotSent = now;
-
-    send({
-        type: "snapshot",
-        world: {
-            slugs: world.slugs
-        },
-        players: packPlayers(),
-        levelId: lastLevelId,
-        levelNumber
-    });
-}
-
-// ============================================================
-// CAMERA
-// ============================================================
 
 function updateCamera() {
-    const player = players[localPlayerKey];
-
     const targetX = player.x - WIDTH * 0.35;
+
     camera.x += (targetX - camera.x) * 0.1;
 
-    if (camera.x < 0) camera.x = 0;
+    if (camera.x < 0) {
+        camera.x = 0;
+    }
 
-    const furthest = world
-        ? world.platforms.reduce(
-            (max, p) => Math.max(max, p.x + p.width), WIDTH
-        )
-        : WIDTH;
+    const furthestPlatform = platforms.reduce(
+        (furthest, p) => Math.max(furthest, p.x + p.width),
+        WIDTH
+    );
 
-    const maxCamera = Math.max(0, furthest - WIDTH);
+    const maxCamera = Math.max(0, furthestPlatform - WIDTH);
 
-    if (camera.x > maxCamera) camera.x = maxCamera;
+    if (camera.x > maxCamera) {
+        camera.x = maxCamera;
+    }
 }
-
-// ============================================================
-// DRAWING
-// ============================================================
 
 function drawBackground() {
     const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+
     gradient.addColorStop(0, "#4ca7ff");
     gradient.addColorStop(1, "#d8f5ff");
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    ctx.fillStyle = "rgba(255,255,255,.65)";
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
 
     for (let i = 0; i < 8; i++) {
-        const x = ((i * 230 - camera.x * 0.2) %
-            (WIDTH + 250) + WIDTH + 250) % (WIDTH + 250);
+        const x =
+            ((i * 230) - camera.x * 0.2) %
+            (WIDTH + 250);
 
-        drawCloud(x, 70 + (i % 3) * 70);
+        const y = 70 + (i % 3) * 70;
+
+        drawCloud(x, y);
     }
 
-    ctx.fillStyle = "rgba(70,150,100,.35)";
+    ctx.fillStyle = "rgba(70,150,100,0.35)";
     ctx.beginPath();
     ctx.moveTo(0, HEIGHT);
 
     for (let x = 0; x <= WIDTH; x += 40) {
-        const y = HEIGHT - 100 -
+        const y =
+            HEIGHT -
+            100 -
             Math.sin((x + camera.x * 0.25) * 0.01) * 40;
 
         ctx.lineTo(x, y);
@@ -1258,42 +1375,62 @@ function drawCloud(x, y) {
 }
 
 function drawPlatforms() {
-    if (!world) return;
+    for (const platform of platforms) {
+        const x = platform.x - camera.x;
+        const y = platform.y;
 
-    for (const p of world.platforms) {
-        const x = p.x - camera.x;
-
-        if (x + p.width < 0 || x > WIDTH) continue;
+        if (
+            x + platform.width < 0 ||
+            x > WIDTH
+        ) {
+            continue;
+        }
 
         ctx.fillStyle = "#55c34a";
-        ctx.fillRect(x, p.y, p.width, 6);
+        ctx.fillRect(x, y, platform.width, 6);
 
         ctx.fillStyle = "#80512f";
-        ctx.fillRect(x, p.y + 6, p.width, p.height - 6);
+        ctx.fillRect(
+            x,
+            y + 6,
+            platform.width,
+            platform.height - 6
+        );
 
         ctx.fillStyle = "#633d25";
 
-        for (let dotX = x + 12; dotX < x + p.width - 5; dotX += 25) {
-            ctx.fillRect(dotX, p.y + 11, 5, 3);
+        for (
+            let dotX = x + 12;
+            dotX < x + platform.width - 5;
+            dotX += 25
+        ) {
+            ctx.fillRect(dotX, y + 11, 5, 3);
         }
     }
 }
 
 function drawSlugs() {
-    if (!world) return;
-
-    for (const slug of world.slugs) {
+    for (const slug of slugs) {
         const x = slug.x - camera.x;
         const y = slug.y;
 
-        if (x + slug.width < 0 || x > WIDTH) continue;
+        if (
+            x + slug.width < 0 ||
+            x > WIDTH
+        ) {
+            continue;
+        }
 
         ctx.fillStyle = "#d71920";
         ctx.beginPath();
         ctx.ellipse(
-            x + slug.width / 2, y + slug.height / 2,
-            slug.width / 2, slug.height / 2,
-            0, 0, Math.PI * 2
+            x + slug.width / 2,
+            y + slug.height / 2,
+            slug.width / 2,
+            slug.height / 2,
+            0,
+            0,
+            Math.PI * 2
         );
         ctx.fill();
 
@@ -1302,7 +1439,7 @@ function drawSlugs() {
         ctx.ellipse(x + 8, y + 3, 5, 2, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(x + 17, y + 1, 3, 3);
         ctx.fillRect(x + 22, y + 1, 3, 3);
 
@@ -1313,9 +1450,6 @@ function drawSlugs() {
 }
 
 function drawGoal() {
-    if (!world) return;
-
-    const goal = world.goal;
     const x = goal.x - camera.x;
     const y = goal.y;
 
@@ -1331,74 +1465,74 @@ function drawGoal() {
     ctx.fill();
 }
 
-function drawPlayer(player, isLocal) {
-    const x = player.x - camera.x;
-    const y = player.y;
+function drawPlayerSprite(entity, shirtColor) {
+    const x = entity.x - camera.x;
+    const y = entity.y;
 
-    if (x + player.width < 0 || x > WIDTH) return;
+    ctx.fillStyle = shirtColor || "#e53935";
+    ctx.fillRect(x, y, entity.width, entity.height);
 
-    // Player body
-    ctx.fillStyle = player.color;
-    ctx.fillRect(x, y, player.width, player.height);
+    ctx.fillStyle = "#1976d2";
+    ctx.fillRect(x, y + 18, entity.width, entity.height - 18);
 
-    // Shirt
-    ctx.fillStyle = isLocal ? "#1976d2" : "#00a896";
-    ctx.fillRect(x, y + 18, player.width, player.height - 18);
-
-    // Face
     ctx.fillStyle = "#ffd1a9";
     ctx.fillRect(x + 5, y + 4, 20, 17);
 
-    // Hair
     ctx.fillStyle = "#38251a";
     ctx.fillRect(x + 4, y + 2, 22, 6);
 
-    // Eyes
     ctx.fillStyle = "#111";
     ctx.fillRect(x + 9, y + 10, 3, 3);
     ctx.fillRect(x + 19, y + 10, 3, 3);
 
-    // Legs
     ctx.fillStyle = "#263238";
     ctx.fillRect(x + 3, y + 34, 9, 8);
     ctx.fillRect(x + 18, y + 34, 9, 8);
+}
 
-    // Name label
-    ctx.font = "bold 13px Arial";
-    ctx.textAlign = "center";
+function drawPlayer() {
+    if (lobbyMode === "client") {
+        // Render the host and every other player from the host's authoritative state.
+        for (const id of Object.keys(remotePlayers)) {
+            drawPlayerSprite(remotePlayers[id], playerColorForPeer(id));
+        }
+        drawPlayerSprite(player, playerColorForPeer(localPeerId));
+        return;
+    }
 
-    const label = player.name + (isLocal ? " (You)" : "");
-
-    const labelWidth = ctx.measureText(label).width + 12;
-
-    ctx.fillStyle = "rgba(0,0,0,.7)";
-    ctx.fillRect(x + player.width / 2 - labelWidth / 2, y - 25,
-        labelWidth, 19);
-
-    ctx.fillStyle = "#fff";
-    ctx.fillText(label, x + player.width / 2, y - 11);
-
-    ctx.textAlign = "left";
+    drawPlayerSprite(player, "#e53935");
+    if (lobbyMode === "host") {
+        for (const id of Object.keys(remotePlayers)) {
+            drawPlayerSprite(remotePlayers[id], playerColorForPeer(id));
+        }
+    }
 }
 
 function drawHUD() {
-    ctx.fillStyle = "rgba(0,0,0,.55)";
-    ctx.fillRect(15, 15, 335, 79);
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(15, 15, 300, 50);
 
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("Level " + levelNumber, 30, 38);
+    ctx.font = "16px Arial";
+    ctx.fillText("← → Move   SPACE Jump", 30, 36);
 
     ctx.font = "13px Arial";
-    ctx.fillStyle = "#f3f5ff";
-    ctx.fillText("P1: " + players.p1.name, 30, 59);
-    ctx.fillText("P2: " + players.p2.name, 30, 77);
+    ctx.fillStyle = "#ddd";
+    ctx.fillText("Reach the red flag — avoid slugs!", 30, 55);
+}
 
-    ctx.fillStyle = connected ? "#7dff9b" : "#ffdb76";
-    ctx.fillText(
-        connected ? "● ONLINE" : "● OFFLINE / SOLO",
-        WIDTH - 155, 30
-    );
+const message = document.getElementById("message");
+let messageTimeout = null;
+
+function showMessage(text, duration = 900) {
+    message.textContent = text;
+    message.style.opacity = "1";
+
+    clearTimeout(messageTimeout);
+
+    messageTimeout = setTimeout(function() {
+        message.style.opacity = "0";
+    }, duration);
 }
 
 function draw() {
@@ -1408,26 +1542,35 @@ function draw() {
     drawPlatforms();
     drawSlugs();
     drawGoal();
-
-    drawPlayer(players.p1, localPlayerKey === "p1");
-    drawPlayer(players.p2, localPlayerKey === "p2");
-
+    drawPlayer();
     drawHUD();
 }
 
-// ============================================================
-// MAIN LOOP
-// ============================================================
-
 function gameLoop() {
-    if (gameStarted && world) {
-        if (isHost) {
-            hostUpdate();
-            hostSendSnapshot();
-        } else {
-            guestSendInput();
+    const now = performance.now();
+
+    if (lobbyMode !== "client") {
+        updatePlayer();
+        updateSlugs();
+
+        if (lobbyMode === "host") {
+            for (const remote of Object.values(remotePlayers)) {
+                updatePlayerEntity(remote, remote.input || { left: false, right: false, jump: false }, false);
+            }
         }
 
+        checkSlugCollisions();
+        updateCamera();
+        checkGoal();
+
+        if (lobbyMode === "host" && now - lastStateSentAt >= 50) {
+            lastStateSentAt = now;
+            broadcastState();
+        }
+    } else {
+        // Clients render the latest host snapshot and send their controls; physics run on the host.
+        sendClientInput(now);
+        jumpPressed = false;
         updateCamera();
     }
 
@@ -1435,18 +1578,7 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// ============================================================
-// INITIALIZATION
-// ============================================================
-
-// Show a local playable level before joining a room.
 generateLevel();
-gameStarted = true;
-players.p1.name = "Player 1";
-players.p2.name = "Player 2";
-players.p1.color = "#e53935";
-players.p2.color = "#8e44ff";
-
 gameLoop();
 
 </script>
